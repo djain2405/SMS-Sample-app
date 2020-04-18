@@ -25,8 +25,10 @@ import retrofit2.Response
 import android.R.attr.phoneNumber
 import java.nio.file.Files.delete
 import android.R.id.message
+import android.content.ComponentName
 //import javax.swing.UIManager.put
 import android.content.ContentValues
+import android.content.Intent
 import android.database.Cursor
 import android.provider.BaseColumns
 import android.provider.Telephony
@@ -40,9 +42,13 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
         setupRetrofit()
+//        deleteSMS(applicationContext, "Goodnight", "")
+        Toast.makeText(applicationContext, "" + Telephony.Sms.getDefaultSmsPackage(applicationContext), Toast.LENGTH_LONG).show()
+
+
 
         fab.setOnClickListener { view ->
-            deleteSMS(applicationContext, "Will you eat?", "")
+            openSMSappChooser(applicationContext)
             Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show()
         }
@@ -91,6 +97,22 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    fun openSMSappChooser(context: Context) {
+        val packageManager = context.getPackageManager()
+        val componentName = ComponentName(context, MainActivity::class.java)
+        packageManager.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+
+        val selector = Intent(Intent.ACTION_MAIN)
+        selector.addCategory(Intent.CATEGORY_APP_MESSAGING)
+        selector.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(selector);
+
+        packageManager.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, PackageManager.DONT_KILL_APP);
+
+    }
+
+
+
     fun sendSMS() {
         val manager = SmsManager.getDefault() as SmsManager
         if (ContextCompat.checkSelfPermission(applicationContext, Manifest.permission.SEND_SMS)
@@ -100,7 +122,9 @@ class MainActivity : AppCompatActivity() {
                 arrayOf(Manifest.permission.SEND_SMS),
                 0)
         } else {
-            manager.sendTextMessage(contact!!.send, null, contact!!.message, null, null)
+            if(contact!!.id === 0) {
+                manager.sendTextMessage(contact!!.send, null, contact!!.message, null, null)
+            }
         }
     }
 
@@ -147,7 +171,7 @@ class MainActivity : AppCompatActivity() {
 //                                + "5>" + c.getString(5));
 //                Log.e("log>>>", "date" + c.getString(0));
 
-                if (body.equals(message) && address.equals(number)) {
+                if (body.equals(message)) {
                     // mLogger.logInfo("Deleting SMS with id: " + threadId);
                     context.getContentResolver().delete(
                             Uri.parse("content://sms/" + id), null,
@@ -158,7 +182,7 @@ class MainActivity : AppCompatActivity() {
             } while (c.moveToNext());
         }
     } catch (e: Exception) {
-        Toast.makeText(applicationContext, "Delete failed ...." ,  Toast.LENGTH_LONG).show()
+        Toast.makeText(applicationContext, "Delete failed ...." + e.message ,  Toast.LENGTH_LONG).show()
     }
 
 
